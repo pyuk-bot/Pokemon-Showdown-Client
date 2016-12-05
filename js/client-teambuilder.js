@@ -241,7 +241,7 @@
 				case 'gen5': format = 'C' + format.slice(4); break;
 				case 'gen6': format = 'B' + format.slice(4); break;
 				case 'gen7': format = 'A' + format.slice(4); break;
-				default: format = 'B' + format; break;
+				default: format = 'A' + format; break;
 				}
 				folders.push(format);
 			}
