@@ -1578,6 +1578,8 @@ var Side = (function () {
 		case 'luckychant':
 			this.sideConditions[condition] = [effect.name, null, 1, 5, 0];
 			break;
+		case 'futuresight': case 'doomdesire':
+			this.sideConditions[condition] = [effect.name, null, 1, 3, 0];
 		case 'stealthrock':
 			this.battle.spriteElemsFront[this.n].append('<img src="' + BattleEffects.rock1.url + '" style="display:none;position:absolute" />');
 			curelem = this.battle.spriteElemsFront[this.n].children().last();
