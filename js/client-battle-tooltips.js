@@ -1141,7 +1141,11 @@ var BattleTooltips = (function () {
 		}
 		if (abilityBoost) {
 			basePower = Math.floor(basePower * abilityBoost);
-			basePowerComment = ' (' + ability + ' boosted)';
+			if (abilityBoost > 1) {
+				basePowerComment = ' (' + ability + ' boosted)';
+			} else {
+				basePowerComment = ' (' + ability + ' weakened)';
+			}
 		}
 		return this.boostBasePower(move, pokemon, basePower, basePowerComment);
 	};
