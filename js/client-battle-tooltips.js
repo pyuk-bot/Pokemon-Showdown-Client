@@ -1235,6 +1235,12 @@ var BattleTooltips = (function () {
 		'Spell Tag': 'Ghost',
 		'TwistedSpoon': 'Psychic'
 	};
+	var orbTypes = {
+		'Soul Dew': 'Psychic',
+		'Adamant Orb': 'Steel',
+		'Lustrous Orb': 'Water',
+		'Griseous Orb': 'Ghost',
+	}
 	var noGemMoves = {
 		'Fire Pledge': 1,
 		'Fling': 1,
@@ -1259,6 +1265,10 @@ var BattleTooltips = (function () {
 
 		// Type-enhancing items
 		if (itemTypes[item.name] === moveType) return this.battle.gen < 4 ? 1.1 : 1.2;
+
+		// Pokemon-specific items
+		if (item.name === 'Soul Dew' && this.battle.gen < 7) return 0;
+		if (orbTypes[item.name] === moveType || moveType === 'Dragon') return 1.2;
 
 		// Gems
 		if (moveName in noGemMoves) return 0;
