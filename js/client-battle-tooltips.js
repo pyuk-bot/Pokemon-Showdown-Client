@@ -1240,7 +1240,7 @@ var BattleTooltips = (function () {
 		'Adamant Orb': 'Steel',
 		'Lustrous Orb': 'Water',
 		'Griseous Orb': 'Ghost',
-	}
+	};
 	var noGemMoves = {
 		'Fire Pledge': 1,
 		'Fling': 1,
