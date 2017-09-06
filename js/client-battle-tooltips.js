@@ -1252,7 +1252,7 @@ var BattleTooltips = (function () {
 			isGrounded = true;
 		} else if (pokemonData.volatiles && pokemonData.volatiles['smackdown']) {
 			isGrounded = true;
-		} else if (!noItem && pokemonData.item === 'ironball'){
+		} else if (!noItem && pokemonData.item === 'ironball') {
 			isGrounded = true;
 		} else if (!(pokemonData.volatiles && pokemonData.volatiles['roost'])) {
 			// If a Fire/Flying type uses Burn Up and Roost, it becomes ???/Flying-type, but it's still grounded.
@@ -1278,7 +1278,7 @@ var BattleTooltips = (function () {
 				basePowerComment += this.makePercentageChangeText(0.5, 'Misty Terrain');
 			}
 		}
-			
+
 		return this.boostBasePower(move, pokemon, basePower, basePowerComment);
 	};
 
@@ -1402,6 +1402,6 @@ var BattleTooltips = (function () {
 			if (types && types.indexOf(pokemon.volatiles.typeadd[2]) === -1) types = types.concat(pokemon.volatiles.typeadd[2]);
 		}
 		return types;
-	}
+	};
 	return BattleTooltips;
 })();
