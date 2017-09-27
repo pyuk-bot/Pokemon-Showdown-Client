@@ -1255,8 +1255,9 @@ var BattleTooltips = (function () {
 			isGrounded = false;
 		} else if (!(terrainBuffed.volatiles && terrainBuffed.volatiles['roost'])) {
 			// If a Fire/Flying type uses Burn Up and Roost, it becomes ???/Flying-type, but it's still grounded.
-			if (this.pokemonHasType(terrainBuffed, 'Flying');
+			if (this.pokemonHasType(terrainBuffed, 'Flying')) isGrounded = false;
 		}
+
 		if (isGrounded) {
 			if ((this.battle.hasPseudoWeather('Electric Terrain') && moveType === 'Electric') ||
 				(this.battle.hasPseudoWeather('Grassy Terrain') && moveType === 'Grass') ||
