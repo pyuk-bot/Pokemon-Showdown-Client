@@ -1154,7 +1154,7 @@ var BattleTooltips = (function () {
 			(ability === 'Technician' && basePower <= 60) ||
 			(ability === 'Toxic Boost' && (pokemon.status === 'psn' || pokemon.status === 'tox') && move.category === 'Physical')) {
 			abilityBoost = 1.5;
-		} else if ((ability === 'Sand Force' && this.battle.weather === 'sandstorm' && (moveType === 'Rock' || moveType === 'Ground' || move.type === 'Steel')) ||
+		} else if ((ability === 'Sand Force' && this.battle.weather === 'sandstorm' && (moveType === 'Rock' || moveType === 'Ground' || moveType === 'Steel')) ||
 			(ability === 'Sheer Force' && move.secondaries) ||
 			(ability === 'Tough Claws' && move.flags['contact'])) {
 			abilityBoost = 1.3;
