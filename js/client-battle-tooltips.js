@@ -1003,7 +1003,7 @@ var BattleTooltips = (function () {
 		}
 		if (move.id === 'brine' && target.hp * 2 <= target.maxhp) {
 			basePower *= 2;
-			basePowerComment = this.makePercnetageChangeText(2, 'Brine + target below half HP');
+			basePowerComment = this.makePercentageChangeText(2, 'Brine + target below half HP');
 		}
 		if (move.id === 'eruption' || move.id === 'waterspout') {
 			basePower = Math.floor(150 * pokemon.hp / pokemon.maxhp) || 1;
