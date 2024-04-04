@@ -2999,7 +2999,7 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 					bestPlus = stat;
 					bestPlusMinEVs = minEVs;
 				} else if (plusEVsSaved === 0 && (bestPlus || savedEVs > 0) || plusEVsSaved > 0 && savedEVs + plusEVsSaved === 0) {
-					if (!bestPlus || getStat(stat, getMinEVs(stat, {plus: stat}), {plus: stat}) > origStats[bestPlus]) {
+					if (!bestPlus || getStat(stat, getMinEVs(stat, {plus: stat}), {plus: stat}) > origStats[stat]) {
 						savedEVs += plusEVsSaved;
 						bestPlus = stat;
 						bestPlusMinEVs = minEVs;
@@ -3040,10 +3040,13 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 				newSpread.evs[origNature.minus] = getMinEVs(origNature.minus, newSpread);
 				savedEVs += (origSpread.evs[origNature.plus] || 0) - newSpread.evs[origNature.plus]!;
 				savedEVs += (origSpread.evs[origNature.minus] || 0) - newSpread.evs[origNature.minus]!;
+				if (savedEVs < 0) return null;
 				return {...newSpread, savedEVs};
 			}
 		}
 	}
+
+	return null;
 }
 
 if (typeof require === 'function') {

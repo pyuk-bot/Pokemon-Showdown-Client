@@ -16,7 +16,7 @@ describe('EV Optimizer', () => {
       level: 100
     }, 'gen9');
     assert.deepStrictEqual(trapinch, {
-      evs: {hp: 204, atk: 144, def: 104, spa: 0, spd: 0, spe: 0},
+      evs: {hp: 204, atk: 144, def: 104},
       plus: 'atk',
       minus: 'spd',
       savedEVs: 56,
@@ -29,7 +29,7 @@ describe('EV Optimizer', () => {
       level: 100
     }, 'gen7');
     assert.deepStrictEqual(groudon, {
-      evs: {hp: 0, atk: 88, def: 0, spa: 156, spd: 96, spe: 100},
+      evs: {atk: 88, spa: 156, spd: 96, spe: 100},
       plus: 'atk',
       minus: 'spd',
       savedEVs: 68,
@@ -43,7 +43,7 @@ describe('EV Optimizer', () => {
       level: 50
     }, 'gen5');
     assert.deepStrictEqual(thundurus, {
-      evs: {hp: 252, atk: 0, def: 0, spa: 112, spd: 0, spe: 128},
+      evs: {hp: 252, spa: 112, spe: 128},
       plus: 'spa',
       minus: 'atk',
       savedEVs: 16,
@@ -56,11 +56,43 @@ describe('EV Optimizer', () => {
       level: 50
     }, 'gen9');
     assert.deepStrictEqual(amoonguss, {
-      evs: {hp: 252, atk: 0, def: 180, spa: 0, spd: 76, spe: 0},
+      evs: {hp: 252, def: 180, spd: 76},
       plus: 'spd',
       minus: 'atk',
       savedEVs: 0,
     });
+
+    const avalugg = BattleStatOptimizer({
+      species: "Avalugg",
+      nature: "Hasty",
+      evs: {hp: 56, atk: 200, def: 252, spa: 0, spd: 0, spe: 0},
+      level: 100
+    }, 'gen9');
+    assert.deepStrictEqual(avalugg, {
+      evs: {hp: 56, atk: 84, def: 64, spe: 84},
+      plus: 'atk',
+      minus: 'spe',
+      savedEVs: 220,
+    });
+
+    const mew = BattleStatOptimizer({
+      species: "Mew",
+      nature: "Sassy",
+      evs: {hp: 24, atk: 92, def: 92, spa: 92, spd: 104, spe: 104},
+      level: 100
+    }, 'gen9');
+    assert.deepStrictEqual(mew, {
+      evs: {hp: 24, atk: 92, def: 92, spa: 92, spd: 208, spe: 0},
+      savedEVs: 0,
+    });
+
+    const mew2 = BattleStatOptimizer({
+      species: "Mew",
+      nature: "Sassy",
+      evs: {hp: 24, atk: 92, def: 92, spa: 92, spd: 144, spe: 64},
+      level: 100
+    }, 'gen9');
+    assert.equal(mew2, null);
 
     const mienfoo = BattleStatOptimizer({
       species: "Mienfoo",
