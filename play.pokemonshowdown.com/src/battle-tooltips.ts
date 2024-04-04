@@ -2906,6 +2906,7 @@ class BattleStatGuesser {
 
 function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 	const dex = Dex.mod(formatid.slice(0, 4) as ID);
+	if (!set.evs) return null;
 	const ignoreEVLimits = (
 		dex.gen < 3 ||
 		((formatid.endsWith('hackmons') || formatid.endsWith('bh')) && dex.gen !== 6) ||
@@ -2919,10 +2920,6 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 	const getStat = (stat: StatName, ev: number, nature: {plus?: StatName, minus?: StatName}) => {
 		const baseStat = species.baseStats[stat];
 		const iv = set.ivs?.[stat] || 31;
-		if (stat === 'hp') {
-			if (baseStat === 1) return 1;
-			return ~~(((2 * baseStat + iv + ~~(ev / 4)) * level) / 100) + level + 10;
-		}
 		let val = ~~(~~(2 * baseStat + iv + ~~(ev / 4)) * level / 100 + 5);
 		if (nature.plus === stat) {
 			val *= 1.1;
@@ -2934,14 +2931,14 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 
 	const origNature = BattleNatures[set.nature || 'Serious'];
 	const origStats = {
-		hp: getStat('hp', set.evs?.hp || 0, origNature),
-		atk: getStat('atk', set.evs?.atk || 0, origNature),
-		def: getStat('def', set.evs?.def || 0, origNature),
-		spa: getStat('spa', set.evs?.spa || 0, origNature),
-		spd: getStat('spd', set.evs?.spd || 0, origNature),
-		spe: getStat('spe', set.evs?.spe || 0, origNature),
+		// hp: getStat('hp', set.evs?.hp || 0, origNature), // no need to calculate hp
+		atk: getStat('atk', set.evs.atk || 0, origNature),
+		def: getStat('def', set.evs.def || 0, origNature),
+		spa: getStat('spa', set.evs.spa || 0, origNature),
+		spd: getStat('spd', set.evs.spd || 0, origNature),
+		spe: getStat('spe', set.evs.spe || 0, origNature),
 	};
-	const getMinEVs = (stat: StatName, nature: {plus?: StatName, minus?: StatName}) => {
+	const getMinEVs = (stat: StatNameExceptHP, nature: {plus?: StatName, minus?: StatName}) => {
 		let ev = 0;
 		while (getStat(stat, ev, nature) < origStats[stat]) {
 			ev += 4;
@@ -2957,68 +2954,76 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 	// Only check for optimizations if EVs are completed
 	if (origLeftoverEVs > 4) return null;
 
-	let curSpread = origSpread;
-	let curLeftoverEVs = origLeftoverEVs;
+	// Can't move the plus if it boosts its stat past normal EV limit
+	const plusTooHigh = origNature.plus && getStat(origNature.plus, 252, {}) < origStats[origNature.plus];
+	// Can't move the minus if there's no investment in its stat to redistribute
+	const minusTooLow = origNature.minus && !origSpread.evs?.[origNature.minus];
+	// If we can't move either of them, do nothing
+	if (plusTooHigh && minusTooLow) return null;
 
-	// Can't optimize if nature boosts stat past normal EV limit
-	if (origNature.plus && getStat(origNature.plus, 252, origNature) < origStats[origNature.plus]) {
-		return null;
-	}
+	let bestPlus = origNature.plus;
+	let bestPlusMinEVs = bestPlus && origSpread.evs[bestPlus];
+	let bestMinus = origNature.minus || 'atk';
+	let bestMinusMinEVs = origSpread.evs[bestMinus];
+	let savedEVs = 0;
 
-	for (const nature of Object.values(BattleNatures)) {
-		if (!nature.plus || !nature.minus) continue;
-
-		const spread = {
-			evs: {
-				hp: getMinEVs('hp', nature),
-				atk: getMinEVs('atk', nature),
-				def: getMinEVs('def', nature),
-				spa: getMinEVs('spa', nature),
-				spd: getMinEVs('spd', nature),
-				spe: getMinEVs('spe', nature),
-			},
-			plus: nature.plus,
-			minus: nature.minus,
-		};
-
-		let totalEVs = 0;
-		let allValidEVs = true;
-		for (const stat of Dex.statNames) {
-			if (spread.evs[stat] > 252) {
-				allValidEVs = false;
-				break;
+	// try and move the minus first, as figuring out where the plus should go is harder if the minus hasn't been placed
+	if (!minusTooLow) {
+		for (const statID in origStats) {
+			const stat = statID as StatNameExceptHP;
+			if (origStats[stat] < origStats[bestMinus]) {
+				const minEVs = getMinEVs(stat, {minus: stat});
+				if (minEVs > 252) continue;
+				// this number can go negative at this point, but we'll make up for it later (and check to make sure)
+				savedEVs = origSpread.evs[stat] - minEVs;
+				if (origNature.minus) savedEVs += origSpread.evs[origNature.minus] - getMinEVs(origNature.minus, {minus: stat});
+				bestMinus = stat;
+				bestMinusMinEVs = minEVs;
 			}
-			totalEVs += spread.evs[stat];
 		}
-
-		const leftoverEVs = 508 - totalEVs;
-		if (totalEVs <= 508 && allValidEVs) {
-			if (leftoverEVs > curLeftoverEVs) {
-				curSpread = spread;
-				curLeftoverEVs = leftoverEVs;
-			} else if (leftoverEVs === curLeftoverEVs) {
-				// Check if we hit a jump point
-				let allGreaterThanOrEqual = true;
-				let atLeastOneGreaterThan = false;
-				for (const stat of Dex.statNames) {
-					const statVal = getStat(stat, spread.evs[stat], nature);
-					const curStatVal = getStat(stat, curSpread.evs?.[stat] || 0, curSpread);
-					if (statVal < curStatVal) {
-						allGreaterThanOrEqual = false;
-						break;
-					} else if (statVal > curStatVal) {
-						atLeastOneGreaterThan = true;
+	}
+	if (!plusTooHigh) {
+		for (const statID in origStats) {
+			const stat = statID as StatNameExceptHP;
+			// don't move the plus to an uninvested stat
+			if (stat !== origNature.plus && origSpread.evs[stat] && stat !== bestMinus) {
+				const minEVs = getMinEVs(stat, {plus: stat});
+				let plusEVsSaved = (origNature.minus === stat ? getMinEVs(stat, {}) : origSpread.evs[stat]) - minEVs;
+				if (bestPlus && bestPlus !== bestMinus) {
+					plusEVsSaved += bestPlusMinEVs! - getMinEVs(bestPlus, {plus: stat, minus: bestMinus});
+				}
+				if (plusEVsSaved > 0 && savedEVs + plusEVsSaved > 0) {
+					savedEVs += plusEVsSaved;
+					bestPlus = stat;
+					bestPlusMinEVs = minEVs;
+				} else if (plusEVsSaved === 0 && (bestPlus || savedEVs > 0) || plusEVsSaved > 0 && savedEVs + plusEVsSaved === 0) {
+					if (!bestPlus || getStat(stat, getMinEVs(stat, {plus: stat}), {plus: stat}) > origStats[bestPlus]) {
+						savedEVs += plusEVsSaved;
+						bestPlus = stat;
+						bestPlusMinEVs = minEVs;
 					}
 				}
-				if (allGreaterThanOrEqual && atLeastOneGreaterThan) {
-					curSpread = spread;
-					curLeftoverEVs = leftoverEVs;
-				}
 			}
 		}
 	}
 
-	return curSpread === origSpread ? null : {...curSpread, savedEVs: curLeftoverEVs - origLeftoverEVs};
+	if (bestPlus && (bestPlus !== origNature.plus || bestMinus !== origNature.minus) && savedEVs >= 0) {
+		const newSpread = {evs: {...origSpread.evs}, plus: bestPlus, minus: bestMinus};
+		if (bestPlusMinEVs) newSpread.evs[bestPlus] = bestPlusMinEVs;
+		if (bestMinusMinEVs) newSpread.evs[bestMinus] = bestMinusMinEVs;
+		if (origNature.plus && origNature.plus !== bestPlus && origNature.plus !== bestMinus) {
+			const oldPlusEVs = getMinEVs(origNature.plus, {plus: bestPlus, minus: bestMinus});
+			if (oldPlusEVs) newSpread.evs[origNature.plus] = oldPlusEVs;
+		}
+		if (origNature.minus && origNature.minus !== bestPlus && origNature.minus !== bestMinus) {
+			const oldMinusEVS = getMinEVs(origNature.minus, {plus: bestPlus, minus: bestMinus});
+			if (oldMinusEVS) newSpread.evs[origNature.minus] = oldMinusEVS;
+		}
+		for (const stat in newSpread.evs) {
+			if (!newSpread.evs[stat as StatNameExceptHP]) delete newSpread.evs[stat as StatNameExceptHP];
+		}
+		return {...newSpread, savedEVs};
+	}
 }
 
 if (typeof require === 'function') {

@@ -19,7 +19,7 @@
  */
 type ID = string & {__isID: true};
 
-const BattleNatures: {[k in NatureName]: {plus?: StatName, minus?: StatName}} = {
+const BattleNatures: {[k in NatureName]: {plus?: StatNameExceptHP, minus?: StatNameExceptHP}} = {
 	Adamant: {
 		plus: 'atk',
 		minus: 'spa',
