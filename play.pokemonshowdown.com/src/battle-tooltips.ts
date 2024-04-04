@@ -2281,7 +2281,7 @@ interface PokemonSet {
 	/** Defaults to random legal gender, NOT subject to gender ratios */
 	gender?: string;
 	/** Defaults to flat 252's (200's/0's in Let's Go) (error in gen 3+) */
-	evs?: StatsTable;
+	evs?: Partial<StatsTable>;
 	/** Defaults to whatever makes sense - flat 31's unless you have Gyro Ball etc */
 	ivs?: StatsTable;
 	/** Defaults as you'd expect (100 normally, 50 in VGC-likes, 5 in LC) */
@@ -2975,8 +2975,10 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 				const minEVs = getMinEVs(stat, {minus: stat});
 				if (minEVs > 252) continue;
 				// this number can go negative at this point, but we'll make up for it later (and check to make sure)
-				savedEVs = origSpread.evs[stat] - minEVs;
-				if (origNature.minus) savedEVs += origSpread.evs[origNature.minus] - getMinEVs(origNature.minus, {minus: stat});
+				savedEVs = (origSpread.evs[stat] || 0) - minEVs;
+				if (origNature.minus) {
+					savedEVs += (origSpread.evs[origNature.minus] || 0) - getMinEVs(origNature.minus, {minus: stat});
+				}
 				bestMinus = stat;
 				bestMinusMinEVs = minEVs;
 			}
@@ -2988,7 +2990,7 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 			// don't move the plus to an uninvested stat
 			if (stat !== origNature.plus && origSpread.evs[stat] && stat !== bestMinus) {
 				const minEVs = getMinEVs(stat, {plus: stat});
-				let plusEVsSaved = (origNature.minus === stat ? getMinEVs(stat, {}) : origSpread.evs[stat]) - minEVs;
+				let plusEVsSaved = (origNature.minus === stat ? getMinEVs(stat, {}) : origSpread.evs[stat] || 0) - minEVs;
 				if (bestPlus && bestPlus !== bestMinus) {
 					plusEVsSaved += bestPlusMinEVs! - getMinEVs(bestPlus, {plus: stat, minus: bestMinus});
 				}
@@ -3007,22 +3009,40 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 		}
 	}
 
-	if (bestPlus && (bestPlus !== origNature.plus || bestMinus !== origNature.minus) && savedEVs >= 0) {
-		const newSpread = {evs: {...origSpread.evs}, plus: bestPlus, minus: bestMinus};
-		if (bestPlusMinEVs) newSpread.evs[bestPlus] = bestPlusMinEVs;
-		if (bestMinusMinEVs) newSpread.evs[bestMinus] = bestMinusMinEVs;
-		if (origNature.plus && origNature.plus !== bestPlus && origNature.plus !== bestMinus) {
-			const oldPlusEVs = getMinEVs(origNature.plus, {plus: bestPlus, minus: bestMinus});
-			if (oldPlusEVs) newSpread.evs[origNature.plus] = oldPlusEVs;
+	if (bestPlus && savedEVs >= 0) {
+		const newSpread: {
+			evs: Partial<StatsTable>,
+			plus?: StatNameExceptHP,
+			minus?: StatNameExceptHP,
+		} = {evs: {...origSpread.evs}, plus: bestPlus, minus: bestMinus};
+		if ((bestPlus !== origNature.plus || bestMinus !== origNature.minus)) {
+			if (bestPlusMinEVs) newSpread.evs[bestPlus] = bestPlusMinEVs;
+			if (bestMinusMinEVs) newSpread.evs[bestMinus] = bestMinusMinEVs;
+			if (origNature.plus && origNature.plus !== bestPlus && origNature.plus !== bestMinus) {
+				const oldPlusEVs = getMinEVs(origNature.plus, newSpread);
+				if (oldPlusEVs) newSpread.evs[origNature.plus] = oldPlusEVs;
+			}
+			if (origNature.minus && origNature.minus !== bestPlus && origNature.minus !== bestMinus) {
+				const oldMinusEVS = getMinEVs(origNature.minus, newSpread);
+				if (oldMinusEVS) newSpread.evs[origNature.minus] = oldMinusEVS;
+			}
+			for (const stat in newSpread.evs) {
+				if (!newSpread.evs[stat as StatNameExceptHP]) delete newSpread.evs[stat as StatNameExceptHP];
+			}
+			return {...newSpread, savedEVs};
+		} else if (!plusTooHigh && !minusTooLow) {
+			if (Math.floor(getStat(bestPlus, bestMinusMinEVs!, newSpread) / 11) <= Math.ceil(origStats[bestMinus] / 9)) {
+				// we're not gaining more points from our plus than we're losing to our minus
+				// so a neutral nature would be better
+				delete newSpread.plus;
+				delete newSpread.minus;
+				newSpread.evs[origNature.plus] = getMinEVs(origNature.plus, newSpread);
+				newSpread.evs[origNature.minus] = getMinEVs(origNature.minus, newSpread);
+				savedEVs += (origSpread.evs[origNature.plus] || 0) - newSpread.evs[origNature.plus]!;
+				savedEVs += (origSpread.evs[origNature.minus] || 0) - newSpread.evs[origNature.minus]!;
+				return {...newSpread, savedEVs};
+			}
 		}
-		if (origNature.minus && origNature.minus !== bestPlus && origNature.minus !== bestMinus) {
-			const oldMinusEVS = getMinEVs(origNature.minus, {plus: bestPlus, minus: bestMinus});
-			if (oldMinusEVS) newSpread.evs[origNature.minus] = oldMinusEVS;
-		}
-		for (const stat in newSpread.evs) {
-			if (!newSpread.evs[stat as StatNameExceptHP]) delete newSpread.evs[stat as StatNameExceptHP];
-		}
-		return {...newSpread, savedEVs};
 	}
 }
 
