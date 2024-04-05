@@ -2905,8 +2905,9 @@ class BattleStatGuesser {
 }
 
 function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
-	const dex = Dex.mod(formatid.slice(0, 4) as ID);
 	if (!set.evs) return null;
+
+	const dex = Dex.mod(formatid.slice(0, 4) as ID);
 	const ignoreEVLimits = (
 		dex.gen < 3 ||
 		((formatid.endsWith('hackmons') || formatid.endsWith('bh')) && dex.gen !== 6) ||
@@ -2917,7 +2918,7 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 
 	const species = dex.species.get(set.species);
 	const level = set.level || 100;
-	const getStat = (stat: StatName, ev: number, nature: {plus?: StatName, minus?: StatName}) => {
+	const getStat = (stat: StatNameExceptHP, ev: number, nature: Nature) => {
 		const baseStat = species.baseStats[stat];
 		const iv = set.ivs?.[stat] || 31;
 		let val = ~~(~~(2 * baseStat + iv + ~~(ev / 4)) * level / 100 + 5);
@@ -2931,14 +2932,14 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 
 	const origNature = BattleNatures[set.nature || 'Serious'];
 	const origStats = {
-		// hp: getStat('hp', set.evs?.hp || 0, origNature), // no need to calculate hp
+		// no need to calculate hp
 		atk: getStat('atk', set.evs.atk || 0, origNature),
 		def: getStat('def', set.evs.def || 0, origNature),
 		spa: getStat('spa', set.evs.spa || 0, origNature),
 		spd: getStat('spd', set.evs.spd || 0, origNature),
 		spe: getStat('spe', set.evs.spe || 0, origNature),
 	};
-	const getMinEVs = (stat: StatNameExceptHP, nature: {plus?: StatName, minus?: StatName}) => {
+	const getMinEVs = (stat: StatNameExceptHP, nature: Nature) => {
 		let ev = 0;
 		while (getStat(stat, ev, nature) < origStats[stat]) {
 			ev += 4;
@@ -2967,14 +2968,13 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 	let bestMinusMinEVs = origSpread.evs[bestMinus];
 	let savedEVs = 0;
 
-	// try and move the minus first, as figuring out where the plus should go is harder if the minus hasn't been placed
+	// Try and move the minus first, as figuring out where the plus should go is harder if the minus hasn't been placed
 	if (!minusTooLow) {
-		for (const statID in origStats) {
-			const stat = statID as StatNameExceptHP;
+		for (const stat of Dex.statNamesExceptHP) {
 			if (origStats[stat] < origStats[bestMinus]) {
 				const minEVs = getMinEVs(stat, {minus: stat});
 				if (minEVs > 252) continue;
-				// this number can go negative at this point, but we'll make up for it later (and check to make sure)
+				// This number can go negative at this point, but we'll make up for it later (and check to make sure)
 				savedEVs = (origSpread.evs[stat] || 0) - minEVs;
 				if (origNature.minus) {
 					savedEVs += (origSpread.evs[origNature.minus] || 0) - getMinEVs(origNature.minus, {minus: stat});
@@ -2985,9 +2985,8 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 		}
 	}
 	if (!plusTooHigh) {
-		for (const statID in origStats) {
-			const stat = statID as StatNameExceptHP;
-			// don't move the plus to an uninvested stat
+		for (const stat of Dex.statNamesExceptHP) {
+			// Don't move the plus to an uninvested stat
 			if (stat !== origNature.plus && origSpread.evs[stat] && stat !== bestMinus) {
 				const minEVs = getMinEVs(stat, {plus: stat});
 				let plusEVsSaved = (origNature.minus === stat ? getMinEVs(stat, {}) : origSpread.evs[stat] || 0) - minEVs;
@@ -3015,7 +3014,7 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 			plus?: StatNameExceptHP,
 			minus?: StatNameExceptHP,
 		} = {evs: {...origSpread.evs}, plus: bestPlus, minus: bestMinus};
-		if ((bestPlus !== origNature.plus || bestMinus !== origNature.minus)) {
+		if (bestPlus !== origNature.plus || bestMinus !== origNature.minus) {
 			if (bestPlusMinEVs) newSpread.evs[bestPlus] = bestPlusMinEVs;
 			if (bestMinusMinEVs) newSpread.evs[bestMinus] = bestMinusMinEVs;
 			if (origNature.plus && origNature.plus !== bestPlus && origNature.plus !== bestMinus) {
@@ -3026,14 +3025,14 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 				const oldMinusEVS = getMinEVs(origNature.minus, newSpread);
 				if (oldMinusEVS) newSpread.evs[origNature.minus] = oldMinusEVS;
 			}
-			for (const stat in newSpread.evs) {
-				if (!newSpread.evs[stat as StatNameExceptHP]) delete newSpread.evs[stat as StatNameExceptHP];
+			for (const stat of Dex.statNames) {
+				if (!newSpread.evs[stat]) delete newSpread.evs[stat];
 			}
 			return {...newSpread, savedEVs};
 		} else if (!plusTooHigh && !minusTooLow) {
 			if (Math.floor(getStat(bestPlus, bestMinusMinEVs!, newSpread) / 11) <= Math.ceil(origStats[bestMinus] / 9)) {
-				// we're not gaining more points from our plus than we're losing to our minus
-				// so a neutral nature would be better
+				// We're not gaining more points from our plus than we're losing to our minus
+				// So a neutral nature would be better
 				delete newSpread.plus;
 				delete newSpread.minus;
 				newSpread.evs[origNature.plus] = getMinEVs(origNature.plus, newSpread);
@@ -3041,6 +3040,9 @@ function BattleStatOptimizer(set: PokemonSet, formatid: ID) {
 				savedEVs += (origSpread.evs[origNature.plus] || 0) - newSpread.evs[origNature.plus]!;
 				savedEVs += (origSpread.evs[origNature.minus] || 0) - newSpread.evs[origNature.minus]!;
 				if (savedEVs < 0) return null;
+				for (const stat of Dex.statNames) {
+					if (!newSpread.evs[stat]) delete newSpread.evs[stat];
+				}
 				return {...newSpread, savedEVs};
 			}
 		}

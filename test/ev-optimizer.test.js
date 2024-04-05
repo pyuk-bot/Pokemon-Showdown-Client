@@ -12,7 +12,7 @@ describe('EV Optimizer', () => {
     const trapinch = BattleStatOptimizer({
       species: "Trapinch",
       nature: "Lax",
-      evs: {hp: 204, atk: 252, def: 52, spa: 0, spd: 0, spe: 0},
+      evs: {hp: 204, atk: 252, def: 52},
       level: 100
     }, 'gen9');
     assert.deepStrictEqual(trapinch, {
@@ -25,7 +25,7 @@ describe('EV Optimizer', () => {
     const groudon = BattleStatOptimizer({
       species: "Groudon-Primal",
       nature: "Serious",
-      evs: {hp: 0, atk: 252, def: 0, spa: 156, spd: 0, spe: 100},
+      evs: {atk: 252, spa: 156, spe: 100},
       level: 100
     }, 'gen7');
     assert.deepStrictEqual(groudon, {
@@ -38,7 +38,7 @@ describe('EV Optimizer', () => {
     const thundurus = BattleStatOptimizer({
       species: "Thundurus",
       nature: "Timid",
-      evs: {hp: 252, atk: 0, def: 0, spa: 232, spd: 0, spe: 24},
+      evs: {hp: 252, spa: 232, spe: 24},
       ivs: {hp: 31, atk: 2, def: 31, spa: 30, spd: 31, spe: 30},
       level: 50
     }, 'gen5');
@@ -52,7 +52,7 @@ describe('EV Optimizer', () => {
     const amoonguss = BattleStatOptimizer({
       species: "Amoonguss",
       nature: "Bold",
-      evs: {hp: 252, atk: 0, def: 100, spa: 0, spd: 156, spe: 0},
+      evs: {hp: 252, def: 100, spd: 156},
       level: 50
     }, 'gen9');
     assert.deepStrictEqual(amoonguss, {
@@ -65,7 +65,7 @@ describe('EV Optimizer', () => {
     const avalugg = BattleStatOptimizer({
       species: "Avalugg",
       nature: "Hasty",
-      evs: {hp: 56, atk: 200, def: 252, spa: 0, spd: 0, spe: 0},
+      evs: {hp: 56, atk: 200, def: 252},
       level: 100
     }, 'gen9');
     assert.deepStrictEqual(avalugg, {
@@ -82,7 +82,7 @@ describe('EV Optimizer', () => {
       level: 100
     }, 'gen9');
     assert.deepStrictEqual(mew, {
-      evs: {hp: 24, atk: 92, def: 92, spa: 92, spd: 208, spe: 0},
+      evs: {hp: 24, atk: 92, def: 92, spa: 92, spd: 208},
       savedEVs: 0,
     });
 
@@ -97,7 +97,7 @@ describe('EV Optimizer', () => {
     const mienfoo = BattleStatOptimizer({
       species: "Mienfoo",
       nature: "Jolly",
-      evs: {hp: 0, atk: 236, def: 116, spa: 0, spd: 0, spe: 156},
+      evs: {atk: 236, def: 116, spe: 156},
       level: 5
     }, 'gen9');
     assert.equal(mienfoo, null);
