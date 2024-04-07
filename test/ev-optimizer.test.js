@@ -94,6 +94,17 @@ describe('EV Optimizer', () => {
     }, 'gen9');
     assert.equal(mew2, null);
 
+    const greatTusk = BattleStatOptimizer({
+      species: "Great Tusk",
+      nature: "Jolly",
+      evs: {hp: 136, atk: 92, def: 100, spd: 72, spe: 108},
+      level: 100
+    }, 'gen9');
+    assert.deepStrictEqual(greatTusk, {
+      evs: {hp: 136, atk: 92, def: 0, spa: 72, spd: 200},
+      savedEVs: 8,
+    });
+
     const mienfoo = BattleStatOptimizer({
       species: "Mienfoo",
       nature: "Jolly",
